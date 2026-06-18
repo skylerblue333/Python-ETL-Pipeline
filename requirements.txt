@@ -1,0 +1,1 @@
+pandas==2.1.0\npyarrow==13.0.0\npytest==7.4.2\n
