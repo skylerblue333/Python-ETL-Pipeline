@@ -1,1 +1,3 @@
-pandas==2.1.0\npyarrow==13.0.0\npytest==7.4.2\n
+pandas>=2.2,<3
+pyarrow>=18,<26
+pytest>=8,<10

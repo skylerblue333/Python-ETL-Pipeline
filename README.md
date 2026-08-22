@@ -1,44 +1,35 @@
-<!-- PORTFOLIO PROJECT PROFILE: maintained by the repository owner -->
+# Python ETL Pipeline
 
-## Project profile and code-audit snapshot
+A focused, deterministic batch pipeline that reads transaction records from CSV, validates and normalizes them, and writes clean records to Parquet. The repository is an implementation component, not an enterprise-scale distributed data platform.
 
-**What this is:** **Python-ETL-Pipeline** is a public repository described as: “Enterprise-grade etl pipeline implementation in Python. #SkyCoin4444 #AI #Blockchain #DevOps #Innovation” Its dominant language signals are **Python (3 files)**.
+## Implemented behavior
 
-**Why it has value:** Its value is best understood through the implementation evidence currently present in the repository: **17 tracked files** were observed in the shallow audit, with the source structure and existing documentation providing the project’s specific context. This README does not treat a prototype, experiment, or archive as a production system without supporting evidence.
+The pipeline validates required columns (`user_id`, `transaction_amount`, and `status`), coerces numeric fields, normalizes status text, rejects malformed or negative transaction rows, reports accepted and rejected row counts, and writes output atomically. An optional USD conversion is supported only when the caller supplies an authoritative rate; no exchange rate is fabricated.
 
-**Implementation evidence:** 1 test-related file(s) detected; 2 dependency or package manifest(s) detected; 2 build/CI/infrastructure signal(s) detected; and 3 documentation or governance file(s) detected. Test filenames observed include `tests/test_pipeline.py`. Dependency or package files include `package.json`, `requirements.txt`. Build, CI, or infrastructure signals include `Dockerfile`, `.github/workflows/ci.yml`.
+Input and output paths are constrained to their configured directories to reduce traversal risk. Missing files and schema errors fail fast with explicit exceptions. The CLI prints the output path and row accounting only after the output file has been written successfully.
 
-**Current status:** The repository is tracked on the `main` branch. The existing source tree, configuration, tests, workflows, and documentation remain authoritative for supported behavior and maturity. A code audit is not a production-readiness certification, and the presence of a test or workflow file does not establish that all checks pass.
+## Usage
 
-**Relationship to the wider portfolio:** This repository is one focused component of the broader Skyler Blue Spillers portfolio across AI, software engineering, cloud and DevOps, cybersecurity, blockchain, finance, education, social systems, and creative work. It may provide a service boundary, implementation pattern, experiment, archive, or reusable idea for related repositories. Treat repositories as technical dependencies only where documented interfaces and verified project requirements support that relationship.
+```bash
+python3 -m pip install -r requirements.txt
+python3 main.py ./input ./output transactions.csv clean.parquet
+python3 main.py ./input ./output transactions.csv rated.parquet --usd-rate 1.25
+```
 
-**Quality and security note:** No obvious secret-like pattern was detected by the limited static scan; this is not a substitute for a security audit. No TODO/FIXME marker was detected in the scanned text files.
+## Validation
 
----
+```bash
+python3 -m pytest -q
+```
 
-# Python Etl Pipeline
+The current test suite covers invalid-row rejection, explicit conversion rates, missing-column failures, path traversal protection, and invalid-rate handling.
 
-![GitHub stars](https://img.shields.io/github/stars/skylerblue333/Python-ETL-Pipeline?style=flat-square)
-![GitHub license](https://img.shields.io/github/license/skylerblue333/Python-ETL-Pipeline?style=flat-square)
+## Scope and limitations
 
-## 🌟 Overview
-**Python-ETL-Pipeline** is a professional-grade project within the **SkyCoin4444** ecosystem. It focuses on delivering high-value solutions in the domain of **Python**.
+This implementation is local batch ETL. It does not provide distributed execution, scheduling, lineage, streaming, warehouse connectors, retries across workers, secrets management, or production deployment. Apache Beam, Dagster, and Prefect were reviewed as architectural references; no source code was copied from those projects. Any future integration must preserve their applicable license and attribution requirements.
 
-## 🚀 Key Features
-- **Scalable Architecture**: Designed for enterprise-level growth and performance.
-- **Modern Standards**: Implements best practices for clean code and maintainability.
-- **Robust Integration**: Built to work seamlessly within modern cloud-native environments.
+The repository’s former “enterprise-grade” and “cloud-native” language was removed because the current implementation does not substantiate those claims.
 
-## 🛠️ Technology Stack
-- **Primary Domain**: Python
-- **Ecosystem**: SkyCoin4444 Digital Platform
+## Attribution
 
-## 📂 Structure
-The project is organized into a modular structure to ensure clarity and ease of development.
-
-## 👨‍💻 Author
-**Skyler Blue Spillers**
-*Professional Chess Player & Software Engineer*
-
----
-*Powered by SkyCoin4444*
+Copyright and authorship remain with the repository owner. The implementation changes are original repository work and use the existing project dependencies under their respective licenses.
