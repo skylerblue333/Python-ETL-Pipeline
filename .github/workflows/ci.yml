@@ -25,7 +25,7 @@ jobs:
       - name: Lint
         run: ruff check main.py src tests
       - name: Tests
-        run: pytest -q
+        run: python -m pytest -q
       - name: Dependency audit
         run: pip-audit -r requirements.txt
       - name: Build image
