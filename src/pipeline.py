@@ -39,7 +39,7 @@ class ETLPipeline:
     def _input_path(self, filename: str) -> Path:
         path = (self.input_dir / filename).resolve()
         if self.input_dir not in path.parents:
-            raise ValueError("input filename must stay within input directory")
+            raise ValueError("input filename must stay inside input_dir")
         if path.suffix.lower() != ".csv":
             raise ValueError("input file must be a .csv file")
         return path
@@ -47,35 +47,45 @@ class ETLPipeline:
     def _output_path(self, filename: str) -> Path:
         path = (self.output_dir / filename).resolve()
         if self.output_dir not in path.parents:
-            raise ValueError("output filename must stay within output directory")
+            raise ValueError("output filename must stay inside output_dir")
         if path.suffix.lower() != ".parquet":
             raise ValueError("output file must be a .parquet file")
         return path
 
-    def run(self, input_filename: str, output_filename: str) -> PipelineResult:
+    def extract(self, input_filename: str) -> pd.DataFrame:
         input_path = self._input_path(input_filename)
-        output_path = self._output_path(output_filename)
         if not input_path.is_file():
             raise FileNotFoundError(f"input file not found: {input_path}")
-
         frame = pd.read_csv(input_path)
         missing = REQUIRED_COLUMNS - set(frame.columns)
         if missing:
             raise ValueError(f"missing required columns: {', '.join(sorted(missing))}")
+        return frame
 
-        rows_read = len(frame)
-        frame["transaction_amount"] = pd.to_numeric(frame["transaction_amount"], errors="coerce")
-        valid = frame["user_id"].notna() & frame["transaction_amount"].notna() & frame["status"].notna()
-        valid &= frame["transaction_amount"] >= 0
-        cleaned = frame.loc[valid].copy()
-        cleaned["status"] = cleaned["status"].astype(str).str.strip().str.lower()
+    def transform(self, frame: pd.DataFrame) -> pd.DataFrame:
+        cleaned = frame.copy()
+        cleaned["transaction_amount"] = pd.to_numeric(cleaned["transaction_amount"], errors="coerce")
+        valid = cleaned["user_id"].notna() & cleaned["transaction_amount"].notna() & cleaned["status"].notna()
+        valid &= cleaned["transaction_amount"] >= 0
+        cleaned = cleaned.loc[valid].copy()
+        cleaned["status"] = cleaned["status"].astype(str).str.strip().str.upper()
         cleaned["user_id"] = cleaned["user_id"].astype(str).str.strip()
-
         if self.usd_rate is not None:
-            cleaned["transaction_amount_usd"] = cleaned["transaction_amount"] * self.usd_rate
+            cleaned["amount_usd"] = cleaned["transaction_amount"] * self.usd_rate
+        return cleaned.reset_index(drop=True)
 
+    def load(self, frame: pd.DataFrame, output_filename: str) -> Path:
+        output_path = self._output_path(output_filename)
         output_path.parent.mkdir(parents=True, exist_ok=True)
-        cleaned.to_parquet(output_path, index=False)
+        frame.to_parquet(output_path, index=False)
+        return output_path
+
+    def run(self, input_filename: str, output_filename: str) -> PipelineResult:
+        frame = self.extract(input_filename)
+        input_path = self._input_path(input_filename)
+        rows_read = len(frame)
+        cleaned = self.transform(frame)
+        output_path = self.load(cleaned, output_filename)
         result = PipelineResult(
             input_path=input_path,
             output_path=output_path,
